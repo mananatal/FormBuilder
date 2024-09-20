@@ -18,4 +18,4 @@ const formSubmissionSchema=new Schema({
 },{timestamps:true});
 
 
-const FormSubmission=module.exports("FormSubmission",formSubmissionSchema);
+export const FormSubmission=module.exports("FormSubmission",formSubmissionSchema);
