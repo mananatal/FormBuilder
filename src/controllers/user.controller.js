@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import bcrypt from "bcrypt";
 import { sendMail } from "../utils/mailSender.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 const options={
     httpOnly:true,
@@ -127,10 +128,46 @@ const logoutUser=asyncHandler(async (req,res)=>{
             .json(new ApiResponse(200,{},"User logged out successfully"));
 });
 
+const refreshAccessToken=asyncHandler(async (req,res)=>{
+    const refreshToken=req.cookies.refreshToken || req.body.refreshToken;
+
+    if(!refreshToken){
+        throw new ApiError(401,"Unauthorized Access");
+    }
+
+    try {   
+        const decodedToken=jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET);
+
+        if(!decodedToken){
+            throw new ApiError(401,"Invalid Token");
+        }
+
+        const user=await User.findById(decodedToken._id);
+        if(!user){
+            throw new ApiError(400,"User not found for given token");
+        }
+
+        const accessToken=user.generateAccessToken();
+        const refreshToken=user.generateRefreshToken();
+    
+        user.refreshToken=refreshToken;
+        await user.save({validateBeforeSave:false});
+
+        return res.status(200)
+               .cookie("accessToken",accessToken,options)
+               .cookie("refreshToken",refreshToken,options)
+               .json(
+                new ApiResponse(200,{refreshToken,accessToken},"Access Token Refreshed Successfully")
+               );
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token");
+    }
+});
 
 
 export {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAccessToken
 }
