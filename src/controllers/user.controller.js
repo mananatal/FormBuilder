@@ -5,6 +5,11 @@ import bcrypt from "bcrypt";
 import { sendMail } from "../utils/mailSender.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const options={
+    httpOnly:true,
+    secure:true,
+}
+
 
 const registerUser=asyncHandler(async (req,res)=>{
     const {username,email,password,fullName}=req.body;
@@ -37,11 +42,11 @@ const registerUser=asyncHandler(async (req,res)=>{
     }
     else{
         const verifyCodeExpiry=new Date(Date.now()+24*60*60*1000);
-        const hashedPassword=await bcrypt.hash(password,10);
+
         const newUser=new User({
             username,
             email,
-            password:hashedPassword,
+            password,
             verifyCode:verificationCode,
             verifyCodeExpiry:verifyCodeExpiry,
             isVerified:false,
@@ -60,3 +65,72 @@ const registerUser=asyncHandler(async (req,res)=>{
     return res.status(200).json(new ApiResponse(200,{},"User Registered Successfully, Please Verify Your Account to login"));  
 
 });
+
+
+const loginUser=asyncHandler(async (req,res)=>{
+    const {email,username,password}=req.body;
+
+    if(!(username || email) || !password){
+        throw new ApiError(404,"Missing Fields");
+    }
+
+    const existedUser=await User.findOne({$or:[{email},{username}]});
+
+    if(!existedUser){
+        throw new ApiError(404,"User Not found, Please create an account first");
+    }
+
+    if(!existedUser.isVerified){
+        throw new ApiError(403,"Please Verify your account before login");
+    }
+
+    const isPasswordCorrect=await existedUser.isPasswordCorrect(password);
+    if(!isPasswordCorrect){
+        throw new ApiError(400,"Please Enter correct password");
+    }
+
+    const accessToken=existedUser.generateAccessToken();
+    const refreshToken=existedUser.generateRefreshToken();
+
+    existedUser.refreshToken=refreshToken;
+    await existedUser.save({validateBeforeSave:false});
+
+    existedUser.password=undefined;
+    existedUser.refreshToken=undefined;
+
+    return res
+            .cookie("token",accessToken,options)
+            .cookie("refreshToken",refreshToken,options)
+            .status(200)
+            .json(new ApiResponse(200,{existedUser,token:accessToken},"User Login Successfuly"))
+
+});
+
+
+const logoutUser=asyncHandler(async (req,res)=>{
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset:{
+                refreshToken:1
+            }
+        },
+        {
+            new:true
+        }
+    );
+
+    return res
+            .status(200)
+            .clearCookie("accessToken",options)
+            .clearCookie("refreshToken",options)            
+            .json(new ApiResponse(200,{},"User logged out successfully"));
+});
+
+
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
