@@ -164,6 +164,65 @@ const refreshAccessToken=asyncHandler(async (req,res)=>{
     }
 });
 
+const verifyOTP=asyncHandler(async (req,res)=>{
+    const {email,otp,username}=req.body;
+
+    if(!(username || email) || !otp){
+        throw new ApiError(404,"Missing Fields");
+    }
+
+    const user=await User.findOne({$or:[{email},{username}]});
+
+    if(!user){
+        throw new ApiError(401,"User not found Please enter valid email or username");
+    }
+
+    isOTPCorrect=user.verifyCode===otp;
+    isOTPNotExpire=user.verifyCodeExpiry>Date.now();
+
+    if(!isOTPCorrect){
+        throw new ApiError(400,"Please Enter correct OTP");
+    }
+    if(!isOTPNotExpire){
+        throw new ApiError(400,"Oops Otp Expires,Please Generate it again");
+    }
+
+    user.isVerified=true;
+    await user.save({validateBeforeSave:false});
+
+    return res.status(200).json(new ApiResponse(200,{},"User Verified Successfully"))
+});
+
+const resendOTP=asyncHandler(async(req,res)=>{
+    const {email,username}=req.body;
+
+    if(!(username || email)){
+        throw new ApiError(404,"Missing Fields");
+    }
+
+    const user=await User.findOne({$or:[{email},{username}]});
+
+    if(!user){
+        throw new ApiError(401,"User not found Please enter valid email or username");
+    }
+    
+    const verificationCode=Math.floor(Math.random()*800000+100000).toString();
+    const verifyCodeExpiry=new Date(Date.now()+24*60*60*1000);
+
+    user.verifyCode=verificationCode;
+    user.verifyCodeExpiry=verifyCodeExpiry;
+
+    const mail=user.email;
+
+    const mailResponse=await sendMail(mail,"Verification OTP",`<h1>Verification Code: ${verificationCode}</h1>`);
+
+    if(!mailResponse){
+        throw new ApiError(500,"Error while Resending verification mail to user");
+    }
+    
+    return res.status(200).json(new ApiResponse(200,{},"OTP resend succcessfully"));
+})
+
 
 export {
     registerUser,
