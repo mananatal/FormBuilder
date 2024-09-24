@@ -4,7 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Form } from "../models/form.model.js";
 import { FormSubmission } from "../models/formSubmission.model.js";
-
+import ExcelJS from 'exceljs';
 
 const createForm=asyncHandler(async (req,res)=>{
     const {title,description,fields}=req.body;
@@ -65,7 +65,7 @@ const getAllFormResponses=asyncHandler(async (req,res)=>{
 
     const responses=await FormSubmission.find({formId});
 
-    if(!responses){
+    if(!responses.length){
         return res.status(200).json(new ApiResponse(200,[],"No responses for the form yet"));
     }
 
@@ -73,11 +73,63 @@ const getAllFormResponses=asyncHandler(async (req,res)=>{
 
 });
 
+const exportResponses=asyncHandler(async (req,res)=>{
+    const {formId}=req.body;
 
+    if(!formId){
+        throw new ApiError(404,"FormId missing");
+    }
+
+    const form=await Form.findById(formId);
+    if(!form){
+        throw new ApiError(401,"No form found for given formId");
+    }
+
+    const submissions=await FormSubmission.find({formId});
+    if(!submissions.length){
+        throw new ApiError(404,"No submissions found for given form");
+    }
+
+    //creating workbook and worksheet for given form
+    const workbook=new ExcelJS.Workbook();
+    const worksheet=workbook.addWorksheet(`${form.title} Responses`);
+
+    //adding headers(form fields) to the worksheet
+    const headers=form.fields.map((field)=>field.label);
+    headers.push("Submitted At");
+
+    worksheet.addRow(headers);
+
+    //adding row data
+    submissions.forEach((submission)=>{
+        const row=[];
+        form.fields.forEach((field)=>{
+            row.push(submission.response[field.name] || "");
+        })
+        row.push(submission.createdAt);
+        worksheet.addRow(row);
+    })
+
+    res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${form.title}-responses.xlsx"`
+    );
+
+    // Write the Excel file to the response stream
+    await workbook.xlsx.write(res);
+
+    res.status(200).end();
+
+});
 
 export{
     createForm,
     getUserForms,
     getAllFormResponses,
-    submitFormResponse
+    submitFormResponse,
+    exportResponses
 }
