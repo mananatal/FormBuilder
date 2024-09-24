@@ -10,11 +10,11 @@ const formSubmissionSchema=new Schema({
         type:Object,
         require:true
     },
-    submittedBy:{
-        type:Schema.Types.ObjectId,
-        ref:"User",
-        require:true
-    }
+    // submittedBy:{
+    //     type:Schema.Types.ObjectId,
+    //     ref:"User",
+    //     require:true
+    // }
 },{timestamps:true});
 
 

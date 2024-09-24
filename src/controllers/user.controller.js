@@ -228,5 +228,7 @@ export {
     registerUser,
     loginUser,
     logoutUser,
-    refreshAccessToken
+    refreshAccessToken,
+    verifyOTP,
+    resendOTP
 }

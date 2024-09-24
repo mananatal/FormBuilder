@@ -19,7 +19,8 @@ const fieldSchema=new Schema({
     name:{
         type:String,
         require:true,
-        trim:true
+        trim:true,
+        unique:true
     },
     validation:{
         type:String,
