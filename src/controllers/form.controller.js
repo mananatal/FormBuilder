@@ -57,10 +57,14 @@ const submitFormResponse=asyncHandler(async (req,res)=>{
 });
 
 const getAllFormResponses=asyncHandler(async (req,res)=>{
-    const {formId}=req.body;
+    const {formId}=req.params;
 
     if(!req.user._id){
         throw new ApiError(401,"Unauthorized Access");
+    }
+    
+    if(!formId){
+        throw new ApiError(404,"FormId missing")
     }
 
     const responses=await FormSubmission.find({formId});

@@ -12,5 +12,11 @@ app.use(cors({
     credentials:true,
 }));
 
+//importing routes
+import userRouter from "./routes/user.route.js";
+import formRouter from "./routes/form.route.js";
+
+app.use("/api/v1/auth",userRouter);
+app.use("api/v1/form",formRouter);
 
 export {app}
