@@ -44,7 +44,7 @@ const registerUser=asyncHandler(async (req,res)=>{
     else{
         const verifyCodeExpiry=new Date(Date.now()+24*60*60*1000);
 
-        const newUser=new User({
+        await User.create({
             username,
             email,
             password,
@@ -52,8 +52,7 @@ const registerUser=asyncHandler(async (req,res)=>{
             verifyCodeExpiry:verifyCodeExpiry,
             isVerified:false,
             fullName
-        });
-        await newUser.save();
+        })
     }
 
     //sending OTP
@@ -62,7 +61,7 @@ const registerUser=asyncHandler(async (req,res)=>{
     if(!mailResponse){
         throw new ApiError(500,"Error while Sending verification mail to user");
     }
-
+ 
     return res.status(200).json(new ApiResponse(200,{},"User Registered Successfully, Please Verify Your Account to login"));  
 
 });
@@ -100,10 +99,10 @@ const loginUser=asyncHandler(async (req,res)=>{
     existedUser.refreshToken=undefined;
 
     return res
-            .cookie("token",accessToken,options)
+            .cookie("accessToken",accessToken,options)
             .cookie("refreshToken",refreshToken,options)
             .status(200)
-            .json(new ApiResponse(200,{existedUser,token:accessToken},"User Login Successfuly"))
+            .json(new ApiResponse(200,{user:existedUser,token:accessToken},"User Login Successfuly"))
 
 });
 
@@ -148,16 +147,16 @@ const refreshAccessToken=asyncHandler(async (req,res)=>{
         }
 
         const accessToken=user.generateAccessToken();
-        const refreshToken=user.generateRefreshToken();
+        const refreshtoken=user.generateRefreshToken();
     
-        user.refreshToken=refreshToken;
+        user.refreshToken=refreshtoken;
         await user.save({validateBeforeSave:false});
 
         return res.status(200)
                .cookie("accessToken",accessToken,options)
-               .cookie("refreshToken",refreshToken,options)
+               .cookie("refreshToken",refreshtoken,options)
                .json(
-                new ApiResponse(200,{refreshToken,accessToken},"Access Token Refreshed Successfully")
+                new ApiResponse(200,{refreshtoken,accessToken},"Access Token Refreshed Successfully")
                );
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid refresh token");
@@ -177,9 +176,9 @@ const verifyOTP=asyncHandler(async (req,res)=>{
         throw new ApiError(401,"User not found Please enter valid email or username");
     }
 
-    isOTPCorrect=user.verifyCode===otp;
-    isOTPNotExpire=user.verifyCodeExpiry>Date.now();
-
+    const isOTPCorrect=user.verifyCode===otp;
+    const isOTPNotExpire=user.verifyCodeExpiry>Date.now();
+ 
     if(!isOTPCorrect){
         throw new ApiError(400,"Please Enter correct OTP");
     }
