@@ -1,6 +1,6 @@
 import  {User}  from "../models/User.model.js";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Form } from "../models/form.model.js";
 import { FormSubmission } from "../models/formSubmission.model.js";
@@ -13,6 +13,9 @@ const createForm=asyncHandler(async (req,res)=>{
         throw new ApiError(400,"Some fields are missing");
     }
 
+    if(!req.user?._id){
+        throw new ApiError("401","Unauthorized Access");
+    }
     const createdForm=await Form.create({
         title,
         description,
@@ -23,6 +26,10 @@ const createForm=asyncHandler(async (req,res)=>{
     if(!createdForm){
         throw new ApiError(500,"Error while creating form");
     }
+    
+    const user=await User.findById(req.user._id);
+    user.formsCreated.push(createdForm._id);
+    await user.save({validateBeforeSave:false});
 
     return res.status(200).json(new ApiResponse(200,{createdForm},"Form created successfully"));
 });

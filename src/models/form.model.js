@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import mongoose,{ Schema } from "mongoose";
 
 
 const fieldSchema=new Schema({
@@ -53,4 +53,4 @@ const formSchema=new Schema({
     }
 },{timestamps:true})
 
-export const Form=module.exports("Form",formSchema);
+export const Form=mongoose.model("Form",formSchema);

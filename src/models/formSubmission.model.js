@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import mongoose,{ Schema } from "mongoose";
 
 const formSubmissionSchema=new Schema({
     formId:{
@@ -18,4 +18,4 @@ const formSubmissionSchema=new Schema({
 },{timestamps:true});
 
 
-export const FormSubmission=module.exports("FormSubmission",formSubmissionSchema);
+export const FormSubmission=mongoose.model("FormSubmission",formSubmissionSchema);

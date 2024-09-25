@@ -1,6 +1,6 @@
 import  {User}  from "../models/User.model.js";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import bcrypt from "bcrypt";
 import { sendMail } from "../utils/mailSender.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
